@@ -1,0 +1,29 @@
+PROJECT SUMMARY
+
+This is a Gen-AI powered Travel Planner + Travel Assistant mobile application.
+
+A user can:
+
+Ask for a trip plan
+
+Ask travel questions
+
+Ask for hotels, restaurants, attractions, ticket prices
+
+Ask for estimated trip cost
+
+Ask for nearby areas to explore
+
+Use a chat assistant for follow-up queries
+
+The system will:
+
+ONLY answer travel-related questions
+
+ALWAYS output structured travel information
+
+NEVER handle non-travel queries
+
+Provide itinerary, cost, hotels, restaurants, nearby places, taxi prices
+
+Use CSV data for 5 cities + LLM for everything else
