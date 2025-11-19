@@ -1,0 +1,11 @@
+User → Flutter UI
+Flutter → /plan_trip or /chat request
+Backend → Cleans text (Member 2)
+Backend → Detects intent (Member 2)
+Backend → Extracts interests (Member 2)
+Backend → Loads data if city in CSV (Member 1)
+Backend → Builds prompt for LLM (Member 2 + Member 4)
+Backend → Calls LLM API (Nebius)
+Backend → Parses + validates response
+Backend → Sends clean JSON
+Flutter → Displays itinerary/cards/chat
