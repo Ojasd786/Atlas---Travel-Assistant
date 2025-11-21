@@ -90,15 +90,15 @@ city_metadata.json
 
 📌 CITIES TO COVER (5 ONLY)
 
-goa
+Goa 
 
-manali
+London
 
-mumbai
+Agra
 
-delhi
+Zurich
 
-jaipur
+Jaipur
 
 📌 HOW TO COLLECT DATA
 
