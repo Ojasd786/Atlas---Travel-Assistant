@@ -1,0 +1,482 @@
+Master PPT + Project Content — Complete, minute-by-minute, from ZERO to DEMO
+
+Below is everything you need to build the slides, speaker notes, demo script, and all supporting technical details for the ATLAS — AI-powered travel assistant project. Use this directly for your PPT slides — I’ll tell you slide-by-slide content, exact commands to run, why each file exists, what each component does, what LLM we used, how prompts are cleaned, how CSVs help avoid hallucination, test cases, troubleshooting and demo script. Nothing left out.
+
+Project summary (short — use for ABSTRACT slide)
+
+ATLAS is an AI-powered travel assistant that generates day-by-day itineraries, approximate trip cost, hotels, restaurants, attractions and transport estimates for a requested city. We use small curated CSV datasets for 5 target cities to ground the LLM and avoid hallucinations, an NLP preprocessing layer to clean and extract user intent/interests, a FastAPI backend that prompts the chosen LLM, and a Flutter frontend that displays results and provides chat-style followups.
+
+One-sentence version: We use CSV grounding + LLM prompting via a FastAPI backend and a Flutter UI to produce structured travel itineraries and travel-focused chat.
+
+Repo layout (exact — put this on a slide)
+project/
+├── backend/
+│   ├── main.py                 # FastAPI entry
+│   ├── requirements.txt
+│   ├── data/                   # Member 1
+│   │   ├── places.csv
+│   │   ├── hotels.csv
+│   │   ├── restaurants.csv
+│   │   ├── transport.csv
+│   │   └── city_metadata.json
+│   └── src/
+│       ├── ai_engine.py        # Member 4 — main AI orchestration
+│       ├── itinerary.py        # (placeholder / post-process helper)
+│       ├── chat_ai.py          # chat-specific prompt builder (optional)
+│       ├── data_loader.py      # loads CSVs and metadata
+│       ├── validators.py       # JSON schema validation helpers
+│       ├── nlp/
+│       │   ├── query_cleaner.py
+│       │   ├── intent_classifier.py
+│       │   └── interest_extractor.py
+│       └── prompt_templates.py # templates & system prompt
+└── frontend_flutter/
+    ├── lib/
+    │   ├── main.dart
+    │   ├── screens/
+    │   │   ├── Screen2.dart    # itinerary_screen.dart (dynamic)
+    │   │   └── Screen3.dart    # chat_screen.dart (dynamic)
+    │   └── services/
+    │       └── api.dart
+    └── pubspec.yaml
+
+Slide-by-slide PPT content + speaker notes (complete)
+
+Use roughly 12–16 slides. Each slide below includes suggested title, bullet content and speaker notes you can read.
+
+Slide 1 — Title
+
+Title: ATLAS — AI-powered Travel Assistant
+Subtitle: CSV-grounded LLM itineraries + Flutter UI + FastAPI backend
+Speaker note: Quick one-line intro and team names (Member 1–4).
+
+Slide 2 — Problem & Motivation
+
+Travelers want fast, accurate itineraries with cost estimates.
+
+LLMs can hallucinate factual details (prices, places).
+
+We combine curated datasets + LLMs for reliable results.
+Speaker note: Explain hallucination risk and why grounding is needed.
+
+Slide 3 — Project Goals
+
+Produce day-wise itineraries with cost estimation.
+
+Return structured JSON for easy UI rendering.
+
+Ground answers with CSV data for 5 cities.
+
+Interactive chat for clarifications and modifications.
+Speaker note: Emphasize reproducibility and student-level scope.
+
+Slide 4 — System Architecture (diagram)
+
+Show diagram: Flutter UI ⇄ FastAPI backend ⇄ LLM (Groq / Nebius) and CSV storage.
+
+Highlight NLP preprocessing step between UI and prompting.
+Speaker note: Walk through a user request → clean → intent → build prompt → LLM → validate → return.
+
+Slide 5 — Why CSV grounding? (technical reasoning)
+
+CSVs give factual anchors: hotel names, prices, attractions, typical costs.
+
+Limits LLM hallucination by injecting real rows into prompt.
+
+Lightweight, offline, and reproducible.
+Speaker note: Give example: if LLM invents a hotel, CSV prevents that for covered cities.
+
+Slide 6 — Data (Member 1) — exact requirements
+
+Files: places.csv, hotels.csv, restaurants.csv, transport.csv, city_metadata.json
+
+For each file: required columns, row counts, examples.
+
+City list: Goa, London, Agra, Zurich, Jaipur.
+Speaker note: Explain data-sourcing process (Google Maps, TripAdvisor, official sites).
+
+Slide 7 — Backend stack & LLM
+
+Backend: Python + FastAPI + Uvicorn.
+
+Key libs: pandas (CSV), python-dotenv, requests/groq client.
+
+LLM: Groq Llama model — used model: llama-3.1-8b-instant (working model).
+
+API key stored in .env as GROQ_API_KEY.
+Speaker note: Mention we tried several model names; llama-3.1-8b-instant worked reliably in testing.
+
+Slide 8 — JSON Schema (strict output) — exact text (copy to PPT)
+{
+  "itinerary": { "day1": [], "day2": [], ... },
+  "approx_trip_cost": "",
+  "hotels": [ {"name": "", "rating": "", "area": ""} ],
+  "tourist_places": [ {"name": "", "ticket_price": "", "distance_km": ""} ],
+  "taxi_prices": "",
+  "restaurants": [ {"name": "", "cuisine": "", "rating": ""} ]
+}
+
+
+Speaker note: Emphasize strict JSON required to keep UI integration simple and deterministic.
+
+Slide 9 — Prompt engineering rules (Member 2)
+
+System prompt (travel-only restriction). Always include it.
+
+Two modes:
+
+CSV-assisted prompt (city in CSV): include CSV table excerpts.
+
+AI-only prompt (city not in CSV): full reasoning from LLM.
+
+Always instruct model to return valid JSON matching schema.
+
+Retry logic: if validation fails, re-prompt with explicit instructions and examples.
+Speaker note: Show sample short system prompt (the travel-only block).
+
+Slide 10 — NLP preprocessing (Member 2) — why & how
+
+query_cleaner.py: remove emojis, punctuation, repeated letters, lowercase.
+
+intent_classifier.py: keyword-based intent classification (trip_plan, hotel_suggestion, etc.)
+
+interest_extractor.py: match words to interest tags (beach, food, history, etc.)
+Speaker note: These help build better prompts and extract user requests (e.g., “beach + nightlife”).
+
+Slide 11 — ai_engine (Member 4) — workflow details
+
+Loads CSVs if city known.
+
+Runs NLP steps: clean → intent → interests.
+
+Builds prompt using prompt_templates.py (system + data + task).
+
+Calls LLM via Groq client; checks response.
+
+Validates JSON via validators.py; retries on malformed output.
+Speaker note: Explain importance of validation and retry — ensures stable JSON for UI.
+
+Slide 12 — Key code snippets (explain why each exists)
+
+data_loader.load_csv() — why we read with pandas (speed + convenience).
+
+call_llm(prompt) — wrapper for Groq client with low temperature for stability.
+
+JSON validator — ensures output can be parsed; if fail → retry with stricter prompt.
+Speaker note: Show short pseudo-snippets and explain why temperature=0.3, deterministic output.
+
+Slide 13 — Frontend (Member 3) — UI screens & UX rules
+
+Screen 1 — Home: TextField (city), Days slider, Budget dropdown, Interests chips, Generate button.
+
+Rules: city non-empty, auto-lowercase, loading spinner on API call.
+
+Screen 2 — Itinerary: city, day-wise cards, cost, hotels list, places list, taxi estimate, restaurants.
+
+Buttons: Ask Assistant → Chat, Back.
+
+Screen 3 — Chat: scrollable list, user bubble (right), AI bubble (left), text input, send.
+Speaker note: Keep UI same as mockup. Explain data flows: API calls to /plan_trip and /chat.
+
+Slide 14 — API endpoints & request/response
+
+POST /plan_trip — Request: {city, days, budget, user_message} → Response: strict JSON schema.
+
+POST /chat — Request: {user_message} → Response: structured JSON if travel or rejection message otherwise.
+Speaker note: Show example cURL for London (one slide or appendix).
+
+Slide 15 — Run & test commands (exact)
+
+Backend
+
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+
+Health check
+
+Visit http://127.0.0.1:8000/ (should return { "message": "Backend running successfully" })
+
+Visit docs: http://127.0.0.1:8000/docs
+Plan trip test (curl example)
+
+curl -X POST "http://127.0.0.1:8000/plan_trip" \
+ -H "Content-Type: application/json" \
+ -d '{"city":"london","days":4,"budget":60000,"user_message":"Plan a 4-day trip to London with museums"}'
+
+
+Flutter
+
+Place Flutter project in a separate folder, run via flutter run -d chrome or flutter run with emulator.
+Speaker note: Walk through live demo steps.
+
+Slide 16 — Testing & QA (cases)
+
+CSV city positive: Goa (check hotels/places from CSV).
+
+CSV city negative (typo): "goaaa" -> fallback to AI-only or fuzzy match.
+
+Non-CSV city: Paris -> AI-only plan.
+
+Budget too low: Zurich with INR 5k -> budget_status":"too_low".
+
+Emoji / noisy input -> query_cleaner cleans it.
+
+Malformed JSON -> validator triggers retry prompt.
+Speaker note: Show a table with test inputs & expected output.
+
+Slide 17 — Demo script (step-by-step)
+
+Start backend (uvicorn), open docs to show endpoints.
+
+In docs, run /plan_trip for Goa (copy test case) → show JSON response.
+
+Start Flutter web (flutter run -d chrome) — open Home screen.
+
+Enter city = goa, days=3, budget=5000, pick chips Beach+Nightlife→ Generate Itinerary.
+
+Show Itinerary screen populated with JSON data (day cards, hotels, places).
+
+Click Ask AI → Chat screen → ask “Can I reduce cost?” → show structured AI answer and updated_plan.
+
+Edge test: ask non-travel in chat: “Tell me a joke” → show rejection.
+Speaker note: Practice once; use same inputs as test cases.
+
+Slide 18 — Failure modes & fixes (troubleshooting)
+
+ParserError from pandas: check CSV row with commas in description — wrap field in double quotes.
+
+ModuleNotFoundError: fastapi: ensure pip installed in same Python env; use which python.
+
+AI Error: model does not exist: change model name to working model (llama-3.1-8b-instant) in ai_engine.
+
+CORS errors in Flutter web: ensure CORSMiddleware set in main.py to allow origins.
+
+API unreachable from phone/emulator: use machine IP (or 10.0.2.2 for Android emulator).
+Speaker note: Keep this slide simple and refer to logs for errors.
+
+Slide 19 — Future improvements / Coming soon (nice-to-have)
+
+Expand CSV to more cities or use a DB.
+
+Add caching for frequent queries.
+
+Add real-time pricing via external APIs (flight/hotel).
+
+Add user authentication & saved trips.
+Speaker note: Good to mention for grading and Q&A.
+
+Slide 20 — Credits & Team responsibilities (concise)
+
+Member 1: Data collection & CSV creation.
+
+Member 2: NLP preprocessing and prompts.
+
+Member 3: Flutter UI (screens & user interactions).
+
+Member 4: Backend + LLM integration + validators.
+Speaker note: Keep it simple.
+
+Deep technical details (for backup slides or appendix)
+Why each major file exists & minute purpose
+
+backend/main.py — FastAPI server and route definitions. Receives JSON, forwards to ai_engine and returns validated JSON.
+
+src/data_loader.py — Loads CSV files (pandas) and provides functions: load_places(city), load_hotels(city), etc. Handles file-not-found gracefully and returns None to trigger fallback to AI-only mode.
+
+src/nlp/query_cleaner.py — Regex cleanup: remove emojis (emoji pattern), remove punctuation, collapse repeated characters (loooove → love), lowercasing. Purpose: reduce noisy tokens that break intent extraction.
+
+src/nlp/intent_classifier.py — Keyword matching logic. Example mapping: ["museum","history","fort","heritage"] => trip_plan/historical.
+
+src/nlp/interest_extractor.py — Returns list of interests found: ["beach","food"].
+
+src/prompt_templates.py — Contains SYSTEM_PROMPT, DATA_ASSISTED_PROMPT, AI_ONLY_PROMPT and small builder functions that glue CSV tables into the prompt with clear markers and an explicit JSON schema.
+
+src/ai_engine.py — Orchestrates: loads metadata, calls NLP functions, builds right prompt, calls call_llm, validates with validators.py, retries if malformed, returns final parsed JSON.
+
+src/validators.py — Strict JSON validation (schema keys present, types as expected). You can implement with jsonschema or custom validation.
+
+frontend/services/api.dart — AtlasAPI.planTrip(...) and AtlasAPI.chatAI(...). Uses HTTP POST to backend and returns decoded JSON map to the UI.
+
+frontend/main.dart and screens/* — Collect inputs, call AtlasAPI, show results, chat UI.
+
+Exact system prompt (copy this into prompt_templates.py)
+
+Use this exact text (shortened for slide):
+
+SYSTEM_PROMPT = """
+You are ATLAS - an AI travel planning assistant.
+You must answer ONLY travel-related questions.
+If the user asks anything not related to travel, respond only: "I can only assist with travel-related questions."
+You MUST ALWAYS respond in strict JSON format matching this schema:
+{ "itinerary": {...}, "approx_trip_cost": "", "hotels": [...], "tourist_places": [...], "taxi_prices": "", "restaurants": [...] }
+Do not output anything outside the JSON. Be concise but complete.
+"""
+
+
+Add DATA_ASSISTED_PROMPT and AI_ONLY_PROMPT as described earlier.
+
+LLM call details (why choices)
+
+temperature=0.3 (lower randomness → more consistent structured output)
+
+top_p=1 (standard)
+
+max_tokens=1200–1500 (enough to output JSON for up to 10 days)
+
+Model: llama-3.1-8b-instant (stable and available via Groq in our testing). If you use Nebius or another provider, change the client wrapper accordingly.
+
+Prompt retry & validation logic (exact steps)
+
+Build prompt (system + CSV excerpt or AI-only instructions + user interests).
+
+Call LLM.
+
+If output parses to JSON and passes validators.validate_plan_trip_json() → return it.
+
+Else: append RETRY_INSTRUCTION string to prompt (explicit: "Return only valid JSON matching schema, no extra text") and call again.
+
+If still invalid → return {"error": "Model could not produce valid itinerary JSON.", "raw_output": <text>} to help debug.
+
+Exact JSON validation checks (implement these)
+
+Top-level keys: itinerary, approx_trip_cost, hotels, tourist_places, taxi_prices, restaurants.
+
+itinerary is a dict with keys day1,... each is list of strings (or list of plans).
+
+hotels is a list of objects each with hotel_name/name, rating numeric or string, area.
+
+ticket_price numeric or string.
+
+No extra text outside JSON (reject if present).
+
+Consider using Python jsonschema or simple checks.
+
+Full list of cURL test cases (appendix)
+
+(You already have 15 earlier; include some examples in Appendix slide.)
+
+Goa (CSV): {"city":"goa","days":3,"budget":20000,"user_message":"Plan a 3 day Goa trip with beaches"}
+
+London (CSV): provided earlier
+
+Zurich low budget, Paris fallback, typos, emojis, etc.
+
+Demo checklist and final QA (copyable)
+
+Backend running (uvicorn main:app --reload)
+
+Hit /plan_trip for Goa — verify hotels from hotels.csv
+
+Hit /plan_trip for Paris — verify no CSV used, AI-only planning
+
+Run Flutter (web or emulator), call plan_trip, verify UI shows structured data
+
+Chat: ask non-travel question → verify rejection
+
+Check bad CSV row fix: open CSV, fix commas, re-run
+
+Slide resources (direct paste for PPT)
+
+Put the System Prompt text on one slide.
+
+Put the JSON schema as code block on one slide.
+
+Put one sample curl command on one slide.
+
+Put the architecture diagram image (draw box arrows) on one slide.
+
+Put responsibilities list and member duties on one slide.
+
+Practical commands & environment variables (copy for Ops slide)
+
+Backend run
+
+cd backend
+python -m venv .venv      # optional
+source .venv/bin/activate
+pip install -r requirements.txt
+export GROQ_API_KEY="your_key_here"   # or create .env file
+uvicorn main:app --reload --port 8000
+
+
+Test plan_trip
+
+curl -X POST http://127.0.0.1:8000/plan_trip -H 'Content-Type: application/json' -d '{"city":"goa","days":3,"budget":20000,"user_message":"beach trip"}'
+
+
+Flutter run (web)
+
+cd frontend_flutter
+flutter pub get
+flutter run -d chrome
+
+Speaker Q&A cheatsheet (expected questions & short answers)
+
+Q: How do you prevent hallucinations?
+A: We ground the prompt with CSV data for five cities and use strict JSON schema + validation + retry logic.
+
+Q: Which LLM did you use and why?
+A: We used Groq Llama model llama-3.1-8b-instant (available to our account) for speed, affordability and structured output reliability. If you have Nebius or other provider, replace client wrapper.
+
+Q: What happens if city is not in CSV?
+A: System switches to AI-only prompt; still enforces JSON schema. Results may be broader and will not include CSV-verified hotel names.
+
+Q: How do you handle malformed LLM output?
+A: Validator checks JSON; if not valid, we re-prompt with strict instruction. If still invalid, backend returns raw output for debugging.
+
+Q: Is the system production-ready?
+A: It's a student project with solid engineering practices. For production: add rate-limiting, caching, external pricing APIs, and stronger logging/monitoring.
+
+Deliverables you can upload to GitHub (exact list)
+
+README.md (use above slides: summary, run instructions, API docs)
+
+backend/ with CSV data and src/
+
+frontend_flutter/ with lib/ and services/api.dart (set base URL)
+
+presentation.pdf (export PPT built using these slides)
+
+Final: Exportable PPT structure (slide titles quick list)
+
+Title
+
+Problem & Motivation
+
+Goals
+
+Architecture diagram
+
+Why CSV grounding
+
+Data (Member 1)
+
+Backend & LLM
+
+JSON Schema
+
+Prompting & Templates (Member 2)
+
+NLP steps
+
+AI Engine (Member 4)
+
+Code rationale & choices
+
+Frontend screens (Member 3)
+
+API endpoints & commands
+
+Test cases & QA
+
+Demo script
+
+Troubleshooting
+
+Future work
+
+Team responsibilities
+
+Q&A & contact
